@@ -8,11 +8,11 @@ A Rust implementation of the ZainPay API client.
 
 ## Features
 
-- Virtual Account management
-- Zainbox operations
-- Bank listing and account resolution
+- Virtual Account management and transaction
+- Zainbox operations and transaction
+- Bank listing and operations
 - Card payments
-- Engine status checks
+- Settlement payments
 
 ## Installation
 
@@ -26,27 +26,51 @@ zainpay = "0.1"
 ## Usage
 
 ```rust
-use zainpay::{ZainpayClient, virtual_account::CreateVirtualAccountRequest};
+use zainpay::engine::Engine;
+use zainpay::enviroment::Environment;
+use zainpay::models::model::ZainboxInfo;
+use zainpay::zainbox::ZainboxService;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = ZainpayClient::new("your_api_key".to_string(), None)?;
+    let merchant_key ="eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9";
+
+    // Initialize the Zainpay client with your API key and environment
+    let engine = Engine::new(Environment::Sandbox, merchant_key);
+
+    // Create an instance of the ZainboxService
+    let zainbox_service = ZainboxService::new(engine);
+
+    // List Zainboxes with optional filters
+    let response = zainbox_service.list(Some(false)).await?;
+
+    // Print the response
+    // println!("Zainboxes: {:?}", response);
+
+    // Check if the response is successful
+    if response.has_succeeded() {
+        // println!("✅ Status Code: {}", response.get_status_code());
+        println!("✅ Status: {:?}", response.get_status());
+        println!("✅ Code: {:?}", response.get_code());
+        println!("✅ Description: {:?}", response.get_description());
+        println!("✅ Data: {:?}", response.get_raw_data());
+
+        // convert the data to desired struct
+        if let Some(zainboxes) = response.parse_data::<Vec<ZainboxInfo>>() {
+            println!("✅ Zainboxes: {:?}", zainboxes);
+        } else {
+            println!("❌ Could not parse zainboxes data");
+        }
+    } 
     
-    // Create virtual account
-    let request = CreateVirtualAccountRequest {
-        wallet_id: "wallet123".to_string(),
-        first_name: "John".to_string(),
-        last_name: "Doe".to_string(),
-        email: "john.doe@example.com".to_string(),
-        phone_number: "08012345678".to_string(),
-        dob: "1990-01-01".to_string(),
-        gender: "Male".to_string(),
-        address: "123 Main St".to_string(),
-    };
-    
-    let account = client.create_virtual_account(request).await?;
-    println!("Created virtual account: {:?}", account);
-    
+    // Check if the response is failure
+    else
+    if response.has_failed() {
+        println!("✅ Status Code: {}", response.get_status_code());
+        println!("✅ Status: {:?}", response.get_status());
+        println!("✅ Code: {:?}", response.get_code());
+        println!("✅ Description: {:?}", response.get_description());
+    }
     Ok(())
 }
 ```
